@@ -3,23 +3,23 @@ apiVersion: bridgejob.ibm.com/v1alpha1
 metadata:
   name: slurmjob
 spec:
-  resourceURL: {{RESOURCE_URL}}
-  image: soerenmetje/bridge-operator-slurm-pod:v0.0.2 # TODO build and push image quay.io/ibmdpdev . Then replace here
-  resourcesecret: {{RESOURCE_SECRET}}
-  imagepullpolicy: Always
+  resourceURL: "http://192.168.64.4:6820/slurm/v0.0.37"
+  image: slurm-pod:v0.0.2
+  resourcesecret: slurm-creds
+  imagepullpolicy: IfNotPresent
   updateinterval: 20
   jobdata:
     jobscript: |
       #!/bin/bash
-      echo "$PWD"
+      echo "$PWD on $(hostname)"
     scriptlocation: inline
   jobproperties: |
     {
     "nodes":"1",
-    "partition": "skylake",
+    "partition": "debug",
     "tasks": 1,
     "name": "bridge-test0",
-    "current_working_directory": "/home/ec2-user/test/",
+    "current_working_directory": "/home/",
     "environment": {
       "PATH": "/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin",
       "LD_LIBRARY_PATH": ""

@@ -44,8 +44,8 @@ spec:
         value: default
       - name: JOBNAME
         value: hpcjob
-    image: quay.io/ibmdpdev/slurm-pod:v0.0.1
-    imagePullPolicy: Always
+    image: slurm-pod:v0.0.2
+    imagePullPolicy: IfNotPresent
     name: hpcjob-hpc-cont
     resources:
       limits:
@@ -58,9 +58,6 @@ spec:
       - mountPath: /credentials
         name: credentials
         readOnly: true
-      - mountPath: /s3credentials
-        name: s3credentials
-        readOnly: true
       - mountPath: /script
         name: script
         subPath: script
@@ -68,11 +65,7 @@ spec:
   - name: credentials
     secret:
       defaultMode: 420
-      secretName: {{RESOURCE_SECRET}}
-  - name: s3credentials
-    secret:
-      defaultMode: 420
-      secretName: {{S3_SECRET}}
+      secretName: slurm-creds
   - name: script
     configMap:
       name: hpcjob-bridge-cm

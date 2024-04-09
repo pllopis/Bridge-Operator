@@ -17,7 +17,7 @@ RUN cd slurm && go mod download
 COPY slurm/* slurm/
 COPY utils/* utils/
 
-RUN cd slurm && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o slurm-pod
+RUN cd slurm && CGO_ENABLED=0 GOOS=linux go build -a -o slurm-pod
 
 #FROM registry.access.redhat.com/ubi9-micro:latest
 FROM alpine:3.14

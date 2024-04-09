@@ -112,7 +112,7 @@ func checkSlurmToken(slurmUsername string, slurmToken string) {
 }
 
 // Submit request for job execution
-func submit(slurmUsername string, slurmToken string, data map[string]string) int {
+func submit(slurmUsername string, slurmToken string, data map[string]string) (int, error) {
 	url := HPCURL + "/job/submit"
 
 	// Create API request body
@@ -128,7 +128,7 @@ func submit(slurmUsername string, slurmToken string, data map[string]string) int
 	err := json.Unmarshal([]byte(data["jobproperties"]), &jobProp)
 	if err != nil {
 		klog.Error("Error in jobproperties provided ", err)
-		return 0
+		return 0, fmt.Errorf("Error in jobproperties provided ", err)
 	}
 
 	var jobSubmissionBody JobSubmissionBody
@@ -137,14 +137,14 @@ func submit(slurmUsername string, slurmToken string, data map[string]string) int
 	body, err := json.Marshal(jobSubmissionBody)
 	if err != nil {
 		klog.Error("Error while creating API submission request body", err)
-		return 0
+		return 0, fmt.Errorf("Error while creating API submission request body", err)
 	}
 
 	// Create API request
 	req, err := http.NewRequest("POST", url, bytes.NewReader(body))
 	if err != nil {
 		klog.Error("Failed to create http request to connect to HPC cluster ", err)
-		return 0
+		return 0, fmt.Errorf("Failed to create http request to connect to HPC cluster ", err)
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
@@ -156,17 +156,17 @@ func submit(slurmUsername string, slurmToken string, data map[string]string) int
 
 	if statusCode != 200 {
 		klog.Error("Submitting job not successful - status code ", statusCode, " err ", string(respBody))
-		return 0
+		return 0, fmt.Errorf("Submitting job not successful - status code ", statusCode, " err ", string(respBody))
 	}
 
 	var id JobId
 	json.Unmarshal(respBody, &id)
 	if id.Id == 0 {
 		klog.Error("Job submittion failed (id 0)")
-		return 0
+		return 0, fmt.Errorf("Job submittion failed (id 0)")
 	}
 	klog.Info("Successfully submitted a job with job id ", id.Id)
-	return id.Id
+	return id.Id, nil
 }
 
 // Kill HPC Job
@@ -309,27 +309,23 @@ func main() {
 	if len(id) == 0 {
 		klog.Info("Slurm Job with name ", JOB_NAME, " does not exist. Submitting new job...")
 
-		intId := submit(slurmUsername, slurmToken, cm.Data)
+		intId, err := submit(slurmUsername, slurmToken, cm.Data)
 		id = fmt.Sprint(intId)
 
-		if len(id) == 0 {
+		if err != nil {
 			// Failed to submit a job
 			info["jobStatus"] = FAILED
-			info["message"] = "Failed to submit a job to Slurm cluster"
-		} else {
-			info["id"] = id
-			info["jobStatus"] = SUBMITTED
-			info["startTime"] = time.Now().Format(TIME)
+			info["message"] = "Failed to submit a job to HPC"
+			klog.Exit("Failed to start HPC job")
 		}
+
+		info["id"] = id
+		info["jobStatus"] = SUBMITTED
+		info["startTime"] = time.Now().Format(TIME)
 
 		podutils.UpdateConfigMap(cm, info)
 
-		// Start monitoring or exit
-		if len(id) != 0 {
-			monitor(slurmUsername, slurmToken, info)
-		} else {
-			klog.Exit("Failed to start Slurm job")
-		}
+		monitor(slurmUsername, slurmToken, info)
 	} else {
 		// Job is already running
 		klog.Info("Slurm Job  has associated ID in ConfigMap. Handling state.")

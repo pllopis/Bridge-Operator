@@ -6,20 +6,20 @@ data:
   # operator poll interval
   updateInterval: "20"                                                            # Poll time
   # job execution
-  resourceURL: {{RESOURCE_URL}}          # URL for cluster
-  resourcesecret: {{RESOURCE_SECRET}}
+  resourceURL: "http://192.168.64.4:6820/slurm/v0.0.37"         # URL for cluster
+  resourcesecret: slurm-creds
   # execution script
   jobdata.jobScript: |
     #!/bin/bash
-    echo "Test run"
+    echo $(hostname)
   jobdata.scriptLocation: inline
   jobproperties: |
     {
     "nodes":"1",
-    "partition": "skylake",
+    "partition": "debug",
     "tasks": 1,
     "name": "bridge-sample0",
-    "current_working_directory": "/home/ec2-user/",
+    "current_working_directory": "/home/",
     "environment": {
       "PATH": "/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin",
       "LD_LIBRARY_PATH": ""
